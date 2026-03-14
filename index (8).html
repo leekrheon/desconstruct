@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deconstruct</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root {
+  --bg: #111111;
+  --bg2: #1c1c1e;
+  --bg3: #2c2c2e;
+  --bg4: #3a3a3c;
+  --text: #f5f5f7;
+  --text2: #aeaeb2;
+  --text3: #6e6e73;
+  --text4: #48484a;
+  --border: #2c2c2e;
+  --border2: #3a3a3c;
+  --white: #f5f5f7;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.flip-overlay { position: fixed; inset: 0; z-index: 9999; background: #f5f5f7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; opacity: 0; pointer-events: none; }
+.flip-overlay.active { pointer-events: all; animation: ovAnim 1.8s var(--ease) forwards; }
+@keyframes ovAnim { 0%{opacity:0} 15%{opacity:1} 75%{opacity:1} 100%{opacity:0} }
+.flip-text { font-size: 17px; font-weight: 700; color: #1d1d1f; letter-spacing: -.03em; opacity: 0; animation: ftAnim 1.8s var(--ease) forwards; }
+.flip-sub  { font-size: 13px; color: #6e6e73; opacity: 0; animation: ftAnim 1.8s .08s var(--ease) forwards; }
+@keyframes ftAnim { 0%,8%{opacity:0;transform:translateY(6px)} 20%,65%{opacity:1;transform:translateY(0)} 85%,100%{opacity:0} }
+
+.panel-bg { position: fixed; inset: 0; z-index: 799; background: rgba(0,0,0,0.6); opacity: 0; pointer-events: none; transition: opacity .3s; }
+.panel-bg.open { opacity: 1; pointer-events: all; }
+.panel { position: fixed; top: 0; right: 0; bottom: 0; width: 340px; background: var(--bg2); border-left: 1px solid var(--border2); z-index: 800; transform: translateX(100%); transition: transform .4s var(--ease); display: flex; flex-direction: column; }
+.panel.open { transform: translateX(0); }
+.panel-head { padding: 52px 20px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.panel-title { font-size: 20px; font-weight: 700; letter-spacing: -.03em; margin-bottom: 3px; }
+.panel-count { font-size: 13px; color: var(--text3); }
+.panel-close { position: absolute; top: 18px; right: 18px; width: 30px; height: 30px; border-radius: 50%; background: var(--bg3); border: none; cursor: pointer; font-size: 14px; color: var(--text2); display: flex; align-items: center; justify-content: center; transition: background .15s; }
+.panel-close:hover { background: var(--bg4); }
+.panel-body { flex: 1; overflow-y: auto; padding: 14px; }
+.panel-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; font-size: 14px; color: var(--text3); text-align: center; line-height: 1.6; }
+.history-item { background: var(--bg3); border-radius: var(--r-md); padding: 14px; margin-bottom: 8px; border: 1px solid var(--border2); }
+.history-date { font-size: 11px; color: var(--text3); font-weight: 600; margin-bottom: 6px; letter-spacing: .03em; }
+.history-path { font-size: 13px; color: var(--text); font-weight: 600; margin-bottom: 4px; line-height: 1.5; }
+.history-ideas { font-size: 12px; color: var(--text3); line-height: 1.5; }
+.panel-clear { margin: 0 14px 16px; padding: 11px; background: transparent; border: 1px solid var(--border2); border-radius: var(--r-sm); font-size: 13px; color: var(--text3); cursor: pointer; font-family: 'Pretendard', sans-serif; transition: all .15s; width: calc(100% - 28px); }
+.panel-clear:hover { border-color: var(--text3); color: var(--text2); }
+
+.app { max-width: 560px; margin: 0 auto; padding: 0 20px 120px; }
+
+.header { display: flex; align-items: center; justify-content: space-between; padding: 28px 0 36px; border-bottom: 1px solid var(--border); margin-bottom: 44px; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.logo-text { font-size: 16px; font-weight: 700; letter-spacing: -.03em; color: var(--text); }
+.header-right { display: flex; align-items: center; gap: 6px; }
+.hbtn { display: flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 100px; background: var(--bg2); border: 1px solid var(--border2); font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; font-family: 'Pretendard', sans-serif; letter-spacing: -.01em; transition: all .15s; }
+.hbtn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+.hbtn svg { width: 13px; height: 13px; }
+.phase-pill { font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 100px; letter-spacing: .01em; text-transform: uppercase; transition: all .3s var(--ease); }
+.phase-pill.d { background: var(--bg3); color: var(--text4); }
+.phase-pill.r, .phase-pill.a { background: var(--white); color: #1d1d1f; }
+
+input[type="text"], input[type="password"] {
+  width: 100%; background: var(--bg2); border: 1.5px solid var(--border2); border-radius: var(--r-md);
+  padding: 15px 16px; font-size: 15px; color: var(--text); font-family: 'Pretendard', sans-serif;
+  outline: none; transition: border-color .2s, box-shadow .2s; -webkit-appearance: none;
+}
+input:focus { border-color: #6e6e73; box-shadow: 0 0 0 3px rgba(255,255,255,.05); }
+input::placeholder { color: var(--text4); }
+
+.btn { display: block; width: 100%; padding: 15px 20px; border-radius: var(--r-md); font-size: 15px; font-weight: 700; letter-spacing: -.01em; cursor: pointer; border: none; font-family: 'Pretendard', sans-serif; transition: all .15s var(--ease); }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-white { background: var(--white); color: #1d1d1f; }
+.btn-white:hover:not(:disabled) { background: #e5e5ea; }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); width: auto; padding: 10px 20px; font-size: 14px; }
+.btn-ghost:hover { background: var(--bg3); color: var(--text); }
+.btn-text { background: none; border: none; cursor: pointer; font-family: 'Pretendard', sans-serif; font-size: 13px; color: var(--text3); text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+.btn-text:hover { color: var(--text2); }
+
+.apikey-wrap { padding-top: 12px; }
+.apikey-wrap h2 { font-size: 30px; font-weight: 700; letter-spacing: -.045em; line-height: 1.2; margin-bottom: 14px; }
+.apikey-wrap .desc { font-size: 15px; color: var(--text2); line-height: 1.7; margin-bottom: 28px; }
+.apikey-wrap a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.field-stack { display: flex; flex-direction: column; gap: 10px; }
+.api-note { display: flex; gap: 8px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-sm); padding: 13px 14px; margin-top: 14px; }
+.api-note-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.api-note-text { font-size: 13px; color: var(--text3); line-height: 1.6; }
+
+.intro { margin-bottom: 32px; }
+.intro h1 { font-size: 36px; font-weight: 700; letter-spacing: -.045em; line-height: 1.15; margin-bottom: 12px; }
+.intro p { font-size: 15px; color: var(--text2); line-height: 1.7; }
+.main-input { width: 100%; background: var(--bg2); border: 1.5px solid var(--border2); border-radius: var(--r-lg); padding: 18px 20px; font-size: 20px; font-weight: 500; letter-spacing: -.025em; color: var(--text); font-family: 'Pretendard', sans-serif; outline: none; display: block; transition: all .2s var(--ease); -webkit-appearance: none; margin-bottom: 10px; }
+.main-input:focus { border-color: #6e6e73; box-shadow: 0 0 0 3px rgba(255,255,255,.05); }
+.main-input::placeholder { color: var(--text4); font-weight: 400; }
+.input-hint { font-size: 12px; color: var(--text3); margin-bottom: 20px; padding-left: 2px; }
+
+.path-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 11px 14px; margin-bottom: 24px; background: var(--bg2); border-radius: var(--r-sm); border: 1px solid var(--border); }
+.path-item { font-size: 13px; color: var(--text3); }
+.path-item.cur { font-weight: 700; color: var(--text); }
+.path-sep { font-size: 11px; color: var(--text4); margin: 0 2px; }
+
+.depth-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+.ddot { width: 5px; height: 5px; border-radius: 50%; background: var(--bg4); transition: background .25s, transform .25s var(--spring); }
+.ddot.on { background: var(--white); transform: scale(1.4); }
+.dlabel { font-size: 11px; font-weight: 600; color: var(--text3); margin-left: 4px; }
+
+.slabel { font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--text3); text-transform: uppercase; margin-bottom: 14px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 36px; }
+.chip { padding: 10px 18px; border-radius: 100px; font-size: 15px; font-weight: 500; letter-spacing: -.01em; cursor: pointer; background: var(--bg2); border: 1.5px solid var(--border2); color: var(--text2); font-family: 'Pretendard', sans-serif; transition: all .15s var(--ease); -webkit-tap-highlight-color: transparent; }
+.chip:hover { background: var(--white); color: #1d1d1f; border-color: var(--white); transform: translateY(-1px); }
+.chip:active { transform: scale(.95); }
+
+.stop-section { border-top: 1px solid var(--border); padding-top: 28px; margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.stop-hint { font-size: 13px; color: var(--text3); }
+.btn-stop { padding: 14px 36px; border-radius: 100px; font-size: 15px; font-weight: 700; letter-spacing: -.01em; cursor: pointer; border: none; background: var(--white); color: #1d1d1f; font-family: 'Pretendard', sans-serif; transition: all .15s var(--ease); }
+.btn-stop:hover { background: #e5e5ea; transform: scale(1.02); }
+.btn-stop:active { transform: scale(.97); }
+
+.loading { display: flex; align-items: center; gap: 10px; padding: 20px 0; font-size: 14px; color: var(--text2); }
+.ldots { display: flex; gap: 4px; }
+.ldots span { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); animation: ldot 1.2s ease-in-out infinite; }
+.ldots span:nth-child(2) { animation-delay: .15s; }
+.ldots span:nth-child(3) { animation-delay: .3s; }
+@keyframes ldot { 0%,80%,100%{transform:scale(.5);opacity:.3} 40%{transform:scale(1);opacity:1} }
+
+.err { padding: 14px 16px; border-radius: var(--r-sm); font-size: 14px; line-height: 1.6; margin-bottom: 14px; background: #2c1616; border: 1px solid #5c2020; color: #ff9090; }
+.err-title { font-weight: 700; margin-bottom: 4px; }
+.err-body { font-size: 13px; color: #cc7070; line-height: 1.55; }
+
+.recon { animation: fadeUp .45s var(--ease) forwards; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.recon-head { margin-bottom: 28px; }
+.recon-title { font-size: 28px; font-weight: 700; letter-spacing: -.04em; line-height: 1.2; margin-bottom: 8px; }
+.recon-sub { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 6px; }
+.recon-path { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.recon-path b { color: var(--text); font-weight: 600; }
+
+.step-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-lg); padding: 22px 20px; margin-bottom: 10px; animation: fadeUp .4s var(--ease) both; }
+.step-card:nth-child(2){animation-delay:.06s} .step-card:nth-child(3){animation-delay:.12s} .step-card:nth-child(4){animation-delay:.18s}
+.step-label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+.step-title { font-size: 18px; font-weight: 700; letter-spacing: -.03em; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
+.step-desc { font-size: 14px; color: var(--text2); line-height: 1.7; }
+.step-arrow { text-align: center; font-size: 12px; color: var(--text4); padding: 6px 0; }
+
+.focal-card { background: var(--bg2); border: 2px solid var(--white); border-radius: var(--r-lg); padding: 24px 20px; margin: 20px 0; text-align: center; animation: fadeUp .5s var(--ease) both; }
+.focal-eq { font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 8px; }
+.focal-eq .a-side { color: var(--text); }
+.focal-eq .eq { color: var(--text3); margin: 0 10px; }
+.focal-eq .b-side { color: var(--text); }
+.focal-reason { font-size: 13px; color: var(--text3); line-height: 1.6; }
+
+.icard { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-lg); padding: 22px 20px; margin-bottom: 10px; transition: all .2s var(--ease); animation: fadeUp .4s var(--ease) both; }
+.icard:hover { background: var(--bg3); transform: translateY(-2px); }
+.icard-idx { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+.icard-title { font-size: 20px; font-weight: 700; letter-spacing: -.03em; color: var(--text); margin-bottom: 10px; line-height: 1.3; }
+.icard-desc { font-size: 14px; color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
+.icard-conn { font-size: 13px; color: var(--text3); line-height: 1.55; font-style: italic; padding-top: 12px; border-top: 1px solid var(--border); }
+.icard-tag { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; background: var(--bg3); color: var(--text3); }
+
+.sdivider { display: flex; align-items: center; gap: 12px; margin: 36px 0 24px; }
+.sdivider-line { flex: 1; height: 1px; background: var(--border); }
+.sdivider-txt { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
+
+.tcard { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-lg); padding: 22px 20px; margin-bottom: 10px; animation: fadeUp .4s var(--ease) both; }
+.tcard:nth-child(2){animation-delay:.04s} .tcard:nth-child(3){animation-delay:.08s}
+.tcard-idx { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+.tcard-name { font-size: 17px; font-weight: 700; letter-spacing: -.025em; color: var(--text); margin-bottom: 3px; }
+.tcard-sub { font-size: 12px; font-weight: 500; color: var(--text3); margin-bottom: 12px; }
+.tcard-body { font-size: 14px; color: var(--text2); line-height: 1.7; }
+
+.restart-row { display: flex; justify-content: center; margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="flip-overlay" id="flipOverlay">
+  <div class="flip-text">재조립을 시작합니다</div>
+  <div class="flip-sub">해체 경로를 역방향으로 재구성해요</div>
+</div>
+
+<div class="panel-bg" id="panelBg" onclick="closePanel()"></div>
+<div class="panel" id="particlePanel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div class="panel-head">
+    <div class="panel-title">Particle</div>
+    <div class="panel-count" id="panelCount"></div>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <button class="panel-clear" id="panelClearBtn" onclick="clearAllHistory()" style="display:none;">기록 전체 삭제</button>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <span class="logo-text">Deconstruct</span>
+    </div>
+    <div class="header-right">
+      <button class="hbtn" onclick="openPanel()">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="3.5" cy="7" r="1.3"/><circle cx="7" cy="3.5" r="1.3"/>
+          <circle cx="10.5" cy="7" r="1.3"/><circle cx="7" cy="10.5" r="1.3"/>
+        </svg>
+        Particle
+      </button>
+      <button class="hbtn" onclick="goHome()" title="API 키 설정">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M1.5 5.5L7 1.5l5.5 4V13H9V9H5v4H1.5z" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="phase-pill d" id="phasePill">해체</span>
+    </div>
+  </div>
+
+  <div id="apikeyScreen">
+    <div class="apikey-wrap">
+      <h2>API 키를<br>입력해주세요</h2>
+      <p class="desc">
+        <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>에서
+        "Create API key"를 클릭해 발급받을 수 있어요.<br>
+        키는 이 기기에만 저장되며 외부로 전송되지 않아요.
+      </p>
+      <div class="field-stack">
+        <input type="password" id="apiKeyInput" placeholder="API 키를 붙여넣으세요" autocomplete="off" />
+        <button class="btn btn-white" id="startBtn" onclick="validateAndStart()">시작하기</button>
+      </div>
+      <div id="apikeyError" style="margin-top: 12px;"></div>
+      <div class="api-note">
+        <span class="api-note-icon">ⓘ</span>
+        <p class="api-note-text">키가 맞지 않거나 사용 제한이 걸린 경우, 이 단계에서 바로 안내해드려요.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainApp" style="display:none;">
+    <div id="introSection">
+      <div class="intro">
+        <h1>무엇을<br>해체할까요?</h1>
+        <p>키워드 하나를 입력하면<br>가장 저차원적인 속성까지 분해해드려요.</p>
+      </div>
+      <input type="text" class="main-input" id="topicInput" placeholder="아무 단어나 입력해보세요" />
+      <div class="input-hint">Enter 또는 아래 버튼으로 시작</div>
+      <button class="btn btn-white" onclick="startDeconstruct()">시작하기</button>
+    </div>
+
+    <div id="deconSection" style="display:none;">
+      <div class="path-trail" id="pathTrail"></div>
+      <div class="depth-row" id="depthRow"></div>
+      <div class="slabel">저차원 특성 선택</div>
+      <div class="chips" id="chipsWrap"></div>
+      <div id="loadingEl" class="loading" style="display:none;">
+        <div class="ldots"><span></span><span></span><span></span></div>
+        <span>분해하는 중</span>
+      </div>
+      <div id="errorEl"></div>
+      <div class="stop-section">
+        <span class="stop-hint">원하는 깊이까지 내려왔다면</span>
+        <button class="btn-stop" onclick="stopDeconstruct()">해체 멈추기</button>
+        <button class="btn-text" onclick="resetToIntro()">처음부터</button>
+      </div>
+    </div>
+
+    <div id="reconSection" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+const MODELS = ['gemini-2.0-flash','gemini-1.5-flash-latest','gemini-1.5-pro-latest'];
+let apiKey = '', usedModel = '', path = [], reconData = {};
+
+async function geminiCall(key, prompt, maxTokens, model) {
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + encodeURIComponent(key);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.9, maxOutputTokens: maxTokens || 1024 }
+    })
+  });
+  return { status: res.status, data: await res.json() };
+}
+
+async function tryModels(key, prompt, maxTokens) {
+  const models = usedModel ? [usedModel, ...MODELS.filter(m => m !== usedModel)] : MODELS;
+  for (const m of models) {
+    try {
+      const r = await geminiCall(key, prompt, maxTokens, m);
+      if (r.status === 200 && r.data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        usedModel = m;
+        localStorage.setItem('gm', m);
+        return r.data.candidates[0].content.parts[0].text;
+      }
+    } catch(e) {}
+  }
+  throw new Error('모든 모델에서 응답을 받지 못했어요. API 키를 확인해주세요.');
+}
+
+async function validateAndStart() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) { showKeyErr('API 키를 입력해주세요.'); return; }
+  const btn = document.getElementById('startBtn');
+  const input = document.getElementById('apiKeyInput');
+  btn.textContent = '확인 중…'; btn.disabled = true; input.disabled = true;
+  document.getElementById('apikeyError').innerHTML = '';
+  let ok = false;
+  for (const m of MODELS) {
+    try {
+      const r = await geminiCall(val, 'OK라고만 답해주세요.', 10, m);
+      if (r.status === 200 && r.data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        usedModel = m; localStorage.setItem('gm', m); ok = true; break;
+      }
+    } catch(e) {}
+  }
+  if (ok) {
+    apiKey = val; localStorage.setItem('gk', apiKey);
+    show('apikeyScreen', false); show('mainApp', true);
+    document.getElementById('topicInput').focus();
+  } else {
+    showKeyErr('작동할 수 없는 API 키예요.', '키를 다시 확인하거나, aistudio.google.com에서 새로 발급해주세요.');
+  }
+  btn.textContent = '시작하기'; btn.disabled = false; input.disabled = false;
+}
+
+function showKeyErr(t, d) {
+  let h = '<div class="err"><div class="err-title">' + t + '</div>';
+  if (d) h += '<div class="err-body">' + d + '</div>';
+  document.getElementById('apikeyError').innerHTML = h + '</div>';
+}
+
+function goHome() {
+  path = []; reconData = {};
+  setPill('d', '해체');
+  show('mainApp', false); show('deconSection', false); show('reconSection', false);
+  document.getElementById('reconSection').innerHTML = '';
+  document.getElementById('apikeyError').innerHTML = '';
+  document.getElementById('apiKeyInput').value = apiKey;
+  show('apikeyScreen', true);
+}
+
+window.addEventListener('load', () => {
+  const sk = localStorage.getItem('gk');
+  const sm = localStorage.getItem('gm');
+  if (sk) { apiKey = sk; if (sm) usedModel = sm; show('apikeyScreen', false); show('mainApp', true); }
+  document.getElementById('topicInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') startDeconstruct(); });
+  document.getElementById('apiKeyInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') validateAndStart(); });
+  renderPanel();
+});
+
+function parseJSON(raw) {
+  const clean = raw.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+/* ── DECONSTRUCT ── */
+async function startDeconstruct() {
+  const t = document.getElementById('topicInput').value.trim();
+  if (!t) return;
+  path = [t]; reconData = {};
+  show('introSection', false); show('deconSection', true);
+  await fetchChips(t);
+}
+
+async function fetchChips(word) {
+  setLoading(true); clearError(); clearChips(); updatePath(); updateDepth();
+  const prompt = `당신은 사물/개념의 본질을 해체하는 분석가입니다.
+
+해체 경로: ${path.join(' → ')}
+현재 해체 대상: "${word}"
+
+"${word}"를 가장 저차원적이고 원초적인 특성/속성으로 분해해주세요.
+${path.length >= 3 ? '이미 꽤 깊이 내려왔습니다. 매우 원초적이고 물리적/감각적인 속성을 제시해주세요.' : ''}
+
+규칙:
+- 5~6개의 핵심 속성
+- 각 2~6글자 짧은 단어/구
+- 물리적·기능적·감각적·정서적 속성 골고루
+- "${word}"만의 것이 아닌, 더 보편적인 속성으로 내려갈수록 좋습니다
+- 설명 없이 단어만
+
+JSON 형식으로만 응답: {"items":["단어1","단어2","단어3","단어4","단어5"]}`;
+  try {
+    const raw = await tryModels(apiKey, prompt, 512);
+    const j = parseJSON(raw);
+    renderChips(j.items);
+  } catch(e) { showError(e.message); }
+  finally { setLoading(false); }
+}
+
+function renderChips(items) {
+  const w = document.getElementById('chipsWrap'); w.innerHTML = '';
+  items.forEach(item => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = item;
+    b.onclick = () => { path.push(item); fetchChips(item); };
+    w.appendChild(b);
+  });
+}
+
+function updatePath() {
+  document.getElementById('pathTrail').innerHTML = path.map((p, i) =>
+    '<span class="path-item ' + (i === path.length - 1 ? 'cur' : '') + '">' + p + '</span>' + (i < path.length - 1 ? '<span class="path-sep">→</span>' : '')
+  ).join('');
+}
+
+function updateDepth() {
+  const max = 7; let h = '';
+  for (let i = 0; i < max; i++) h += '<div class="ddot ' + (i < path.length - 1 ? 'on' : '') + '"></div>';
+  h += '<span class="dlabel">depth ' + (path.length - 1) + '</span>';
+  document.getElementById('depthRow').innerHTML = h;
+}
+
+/* ── STOP & RECONSTRUCT ── */
+async function stopDeconstruct() {
+  document.getElementById('flipOverlay').classList.add('active');
+  setPill('r', '재조립');
+  setTimeout(() => document.getElementById('flipOverlay').classList.remove('active'), 1900);
+
+  show('deconSection', false);
+  const sec = document.getElementById('reconSection');
+  show('reconSection', true);
+  sec.innerHTML = `<div class="recon"><div class="recon-head"><div class="recon-title">재조립합니다</div><div class="recon-path">해체 경로 <b>${path.join(' → ')}</b></div></div><div class="loading" id="reconLoading"><div class="ldots"><span></span><span></span><span></span></div><span>시초점을 찾는 중</span></div></div>`;
+
+  try {
+    // STEP 1: 시초점 — 마지막 원자 속성을 공유하는 전혀 다른 도메인 대상 찾기
+    const origin = path[0];
+    const lastAtom = path[path.length - 1];
+    const focalPrompt = `당신은 창의적 연결을 찾는 전문가입니다.
+
+원래 대상: "${origin}"
+해체 경로: ${path.join(' → ')}
+도달한 원자 속성: "${lastAtom}"
+
+"${lastAtom}"이라는 원초적 속성을 공유하지만, "${origin}"과는 완전히 다른 도메인에 있는 대상을 찾아주세요.
+두 대상이 "${lastAtom}"을 통해 연결되는 이유를 한 문장으로 설명해주세요.
+
+규칙:
+- "${origin}"과 관련 없는, 전혀 다른 분야의 대상
+- 사회적·인간적 의미가 있는 대상이면 더 좋습니다
+- 연결이 날카롭고 의외성이 있어야 합니다
+
+JSON으로만: {"target":"연결된 대상","reason":"둘 다 ~라는 속성을 공유한다는 점에서의 연결 설명"}`;
+
+    const focalRaw = await tryModels(apiKey, focalPrompt, 512);
+    const focal = parseJSON(focalRaw);
+    reconData.focal = focal;
+
+    // 시초점 카드 렌더
+    sec.innerHTML = `<div class="recon"><div class="recon-head"><div class="recon-title">시초점 발견</div><div class="recon-sub">저차원 연결이 만들어졌어요</div><div class="recon-path">해체 경로 <b>${path.join(' → ')}</b></div></div></div>`;
+    sec.querySelector('.recon').insertAdjacentHTML('beforeend',
+      `<div class="focal-card"><div class="focal-eq"><span class="a-side">${origin}</span><span class="eq">=</span><span class="b-side">${focal.target}</span></div><div class="focal-reason">${focal.reason}</div></div><div class="loading" id="reconLoading"><div class="ldots"><span></span><span></span><span></span></div><span>역방향으로 차원을 올리는 중</span></div>`
+    );
+
+    // STEP 2: 역방향 단계별 상승
+    const depth = path.length;
+    const stepsPrompt = `당신은 창의적 캠페인 기획자입니다.
+
+원래 대상: "${origin}"
+해체 경로 (하향): ${path.join(' → ')}
+시초점: "${origin}" = "${focal.target}" (연결 근거: ${focal.reason})
+
+이제 해체 경로를 역방향으로 올라가면서, 각 단계에서 두 도메인("${origin}" 쪽과 "${focal.target}" 쪽)의 맥락을 동시에 확장해주세요.
+
+총 ${depth - 1}단계로 올라갑니다. 가장 깊은 곳에서 시작해서 최종적으로 사회적 의미를 가진 캠페인/아이디어에 도달합니다.
+
+각 단계에서:
+- left: "${origin}" 도메인에서의 의미 확장
+- right: "${focal.target}" 도메인에서의 의미 확장  
+- label: 어떤 종류의 확장인지 (예: "한 차원 올라가며", "맥락으로 확장하며", "사회적 의미로 재조립")
+
+마지막 단계에서는 반드시:
+- campaign_name: 캠페인/아이디어 이름 (10자 이내, 임팩트 있게)
+- campaign_desc: 캠페인 설명 2~3문장
+- message: 핵심 메시지 한 문장 (카피라인처럼)
+
+JSON으로만:
+{"steps":[{"label":"...","left":"...","right":"..."}],"campaign_name":"...","campaign_desc":"...","message":"..."}`;
+
+    const stepsRaw = await tryModels(apiKey, stepsPrompt, 1024);
+    const steps = parseJSON(stepsRaw);
+    reconData.steps = steps;
+
+    // 역방향 단계 렌더
+    let stepsHtml = '<div class="sdivider"><div class="sdivider-line"></div><div class="sdivider-txt">재조립 단계 — Reconstruction ↑</div><div class="sdivider-line"></div></div>';
+
+    steps.steps.forEach((s, i) => {
+      const stepNum = steps.steps.length - i;
+      stepsHtml += `<div class="step-arrow">↑ ${s.label}</div><div class="step-card"><div class="step-label">Step ${stepNum}'</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div style="flex:1;min-width:200px;"><div class="step-title">${s.left}</div></div><div style="flex:1;min-width:200px;"><div class="step-title">${s.right}</div></div></div></div>`;
+    });
+
+    // 최종 캠페인 카드
+    stepsHtml += `<div class="step-arrow">↑ 사회적 의미로 재조립</div><div class="icard"><div class="icard-idx">Campaign</div><div class="icard-title">${steps.campaign_name}</div><div class="icard-desc">${steps.campaign_desc}</div><div class="icard-conn">${steps.message}</div></div>`;
+
+    // 시초점+메시지 요약
+    stepsHtml += `<div class="focal-card" style="border-color:var(--border2);margin-top:16px;"><div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--text3);margin-bottom:8px;">시초점</div><div class="focal-eq"><span class="a-side">${origin}</span><span class="eq">=</span><span class="b-side">${focal.target}</span></div><div class="focal-reason" style="margin-top:10px;">${focal.reason}</div><div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--text3);margin-bottom:6px;">메시지</div><div style="font-size:15px;font-weight:600;color:var(--text);line-height:1.5;">${steps.message}</div></div>`;
+
+    document.getElementById('reconLoading')?.remove();
+    sec.querySelector('.recon').insertAdjacentHTML('beforeend', stepsHtml);
+
+    // STEP 3: 증폭 도구
+    stepsHtml = `<div class="loading" id="ampLoad"><div class="ldots"><span></span><span></span><span></span></div><span>3가지 도구로 증폭하는 중</span></div>`;
+    sec.querySelector('.recon').insertAdjacentHTML('beforeend', stepsHtml);
+    await fetchAmplify();
+
+  } catch(e) {
+    const ld = document.getElementById('reconLoading');
+    if (ld) ld.outerHTML = `<div class="err"><div class="err-title">재조립 오류</div><div class="err-body">${e.message}</div></div>`;
+  }
+}
+
+async function fetchAmplify() {
+  setPill('a', '증폭');
+  const origin = path[0];
+  const focal = reconData.focal;
+  const steps = reconData.steps;
+
+  const prompt = `당신은 크리에이티브 전략가입니다.
+
+원래 대상: "${origin}"
+해체 경로: ${path.join(' → ')}
+시초점: "${origin}" = "${focal.target}"
+캠페인: "${steps.campaign_name}" — ${steps.campaign_desc}
+
+3가지 도구로 이 아이디어를 증폭해주세요:
+
+1. 해체의 깊이 (기능→속성→정서): 아직 발견하지 못한 정서적 레이어를 찾고, 그로부터 파생되는 새로운 아이디어 방향
+2. 메타포 전이 (형태적→구조적): "${origin}"과 "${focal.target}"의 구조적 유사성을 비틀어서 나오는 날카로운 메시지
+3. 시각적 낯설게 하기: 한 장의 이미지로 표현한다면? 시각적 충돌/대비, 비주얼 시초점과 카피라인 제안
+
+JSON으로만:
+{"tools":[{"name":"해체의 깊이","subtitle":"기능 → 속성 → 정서","content":""},{"name":"메타포 전이","subtitle":"형태적 → 구조적 유사성","content":""},{"name":"시각적 낯설게 하기","subtitle":"Visual Defamiliarization","content":""}]}`;
+
+  try {
+    const raw = await tryModels(apiKey, prompt, 1500);
+    const j = parseJSON(raw);
+    renderTools(j.tools);
+  } catch(e) {
+    document.getElementById('ampLoad').outerHTML = `<div class="err"><div class="err-title">증폭 오류</div><div class="err-body">${e.message}</div></div>`;
+  }
+  setPill('a', '완성');
+  saveToHistory();
+}
+
+function renderTools(tools) {
+  let h = '<div class="sdivider"><div class="sdivider-line"></div><div class="sdivider-txt">3가지 증폭 도구</div><div class="sdivider-line"></div></div>';
+  tools.forEach((t, i) => {
+    h += `<div class="tcard"><div class="tcard-idx">Tool ${String(i+1).padStart(2,'0')}</div><div class="tcard-name">${t.name}</div><div class="tcard-sub">${t.subtitle}</div><div class="tcard-body">${t.content}</div></div>`;
+  });
+  h += '<div class="restart-row"><button class="btn-ghost" onclick="resetToIntro()">새로운 해체 시작</button></div>';
+  document.getElementById('ampLoad').outerHTML = h;
+}
+
+/* ── PARTICLE ── */
+function getHistory() { try { return JSON.parse(localStorage.getItem('ph') || '[]'); } catch { return []; } }
+function saveToHistory() {
+  const h = getHistory();
+  h.unshift({
+    id: Date.now(),
+    date: new Date().toLocaleString('ko-KR', {month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+    path: path.join(' → '),
+    focal: reconData.focal ? `${path[0]} = ${reconData.focal.target}` : '',
+    campaign: reconData.steps?.campaign_name || ''
+  });
+  if (h.length > 50) h.pop();
+  localStorage.setItem('ph', JSON.stringify(h));
+}
+function renderPanel() {
+  const h = getHistory();
+  document.getElementById('panelCount').textContent = h.length ? h.length + '개의 기록' : '기록 없음';
+  document.getElementById('panelClearBtn').style.display = h.length ? 'block' : 'none';
+  const body = document.getElementById('panelBody');
+  if (!h.length) { body.innerHTML = '<div class="panel-empty">아직 해체 기록이 없어요.<br>첫 번째 해체를 시작해보세요.</div>'; return; }
+  body.innerHTML = h.map(item => `<div class="history-item"><div class="history-date">${item.date}</div><div class="history-path">${item.path}</div><div class="history-ideas">${item.focal || ''} ${item.campaign ? '→ ' + item.campaign : ''}</div></div>`).join('');
+}
+function openPanel()  { renderPanel(); document.getElementById('particlePanel').classList.add('open'); document.getElementById('panelBg').classList.add('open'); }
+function closePanel() { document.getElementById('particlePanel').classList.remove('open'); document.getElementById('panelBg').classList.remove('open'); }
+function clearAllHistory() { if (!confirm('기록을 모두 삭제할까요?')) return; localStorage.removeItem('ph'); renderPanel(); }
+
+/* ── RESET ── */
+function resetToIntro() {
+  path = []; reconData = {};
+  setPill('d', '해체');
+  show('deconSection', false); show('reconSection', false);
+  document.getElementById('reconSection').innerHTML = '';
+  show('introSection', true);
+  document.getElementById('topicInput').value = '';
+  document.getElementById('topicInput').focus();
+}
+
+/* ── UTILS ── */
+function show(id, v)   { document.getElementById(id).style.display = v ? 'block' : 'none'; }
+function setPill(cls, t) { const p = document.getElementById('phasePill'); p.className = 'phase-pill ' + cls; p.textContent = t; }
+function setLoading(v) { document.getElementById('loadingEl').style.display = v ? 'flex' : 'none'; }
+function clearChips()  { document.getElementById('chipsWrap').innerHTML = ''; }
+function clearError()  { document.getElementById('errorEl').innerHTML = ''; }
+function showError(m)  { document.getElementById('errorEl').innerHTML = `<div class="err"><div class="err-title">오류가 발생했어요</div><div class="err-body">${m}</div></div>`; }
+</script>
+</body>
+</html>
