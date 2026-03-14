@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deconstruct</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root {
+  --bg: #111111;
+  --bg2: #1c1c1e;
+  --bg3: #2c2c2e;
+  --bg4: #3a3a3c;
+  --text: #f5f5f7;
+  --text2: #aeaeb2;
+  --text3: #6e6e73;
+  --text4: #48484a;
+  --border: #2c2c2e;
+  --border2: #3a3a3c;
+  --white: #f5f5f7;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* FLIP */
+.flip-overlay { position: fixed; inset: 0; z-index: 9999; background: #f5f5f7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; opacity: 0; pointer-events: none; }
+.flip-overlay.active { pointer-events: all; animation: ovAnim 1.5s var(--ease) forwards; }
+@keyframes ovAnim { 0%{opacity:0} 20%{opacity:1} 75%{opacity:1} 100%{opacity:0} }
+.flip-text { font-size: 17px; font-weight: 700; color: #1d1d1f; letter-spacing: -.03em; opacity: 0; animation: ftAnim 1.5s var(--ease) forwards; }
+.flip-sub  { font-size: 13px; color: #6e6e73; opacity: 0; animation: ftAnim 1.5s .08s var(--ease) forwards; }
+@keyframes ftAnim { 0%,8%{opacity:0;transform:translateY(6px)} 25%,70%{opacity:1;transform:translateY(0)} 90%,100%{opacity:0} }
+
+/* PARTICLE PANEL */
+.panel-bg { position: fixed; inset: 0; z-index: 799; background: rgba(0,0,0,0.6); opacity: 0; pointer-events: none; transition: opacity .3s; }
+.panel-bg.open { opacity: 1; pointer-events: all; }
+.panel { position: fixed; top: 0; right: 0; bottom: 0; width: 340px; background: var(--bg2); border-left: 1px solid var(--border2); z-index: 800; transform: translateX(100%); transition: transform .4s var(--ease); display: flex; flex-direction: column; }
+.panel.open { transform: translateX(0); }
+.panel-head { padding: 52px 20px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.panel-title { font-size: 20px; font-weight: 700; letter-spacing: -.03em; margin-bottom: 3px; }
+.panel-count { font-size: 13px; color: var(--text3); }
+.panel-close { position: absolute; top: 18px; right: 18px; width: 30px; height: 30px; border-radius: 50%; background: var(--bg3); border: none; cursor: pointer; font-size: 14px; color: var(--text2); display: flex; align-items: center; justify-content: center; transition: background .15s; }
+.panel-close:hover { background: var(--bg4); }
+.panel-body { flex: 1; overflow-y: auto; padding: 14px; }
+.panel-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; font-size: 14px; color: var(--text3); text-align: center; line-height: 1.6; }
+.history-item { background: var(--bg3); border-radius: var(--r-md); padding: 14px; margin-bottom: 8px; border: 1px solid var(--border2); }
+.history-date { font-size: 11px; color: var(--text3); font-weight: 600; margin-bottom: 6px; letter-spacing: .03em; }
+.history-path { font-size: 13px; color: var(--text); font-weight: 600; margin-bottom: 4px; line-height: 1.5; }
+.history-ideas { font-size: 12px; color: var(--text3); line-height: 1.5; }
+.panel-clear { margin: 0 14px 16px; padding: 11px; background: transparent; border: 1px solid var(--border2); border-radius: var(--r-sm); font-size: 13px; color: var(--text3); cursor: pointer; font-family: 'Pretendard', sans-serif; transition: all .15s; width: calc(100% - 28px); }
+.panel-clear:hover { border-color: var(--text3); color: var(--text2); }
+
+/* LAYOUT */
+.app { max-width: 560px; margin: 0 auto; padding: 0 20px 120px; }
+
+/* HEADER */
+.header { display: flex; align-items: center; justify-content: space-between; padding: 28px 0 36px; border-bottom: 1px solid var(--border); margin-bottom: 44px; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.logo-img { height: 26px; width: auto; object-fit: contain; }
+.logo-text { font-size: 16px; font-weight: 700; letter-spacing: -.03em; color: var(--text); }
+.header-right { display: flex; align-items: center; gap: 6px; }
+.hbtn { display: flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 100px; background: var(--bg2); border: 1px solid var(--border2); font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; font-family: 'Pretendard', sans-serif; letter-spacing: -.01em; transition: all .15s; }
+.hbtn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+.hbtn svg { width: 13px; height: 13px; }
+.phase-pill { font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 100px; letter-spacing: .01em; text-transform: uppercase; transition: all .3s var(--ease); }
+.phase-pill.d { background: var(--bg3); color: var(--text4); }
+.phase-pill.r, .phase-pill.a { background: var(--white); color: #1d1d1f; }
+
+/* INPUTS */
+input[type="text"], input[type="password"] {
+  width: 100%; background: var(--bg2); border: 1.5px solid var(--border2); border-radius: var(--r-md);
+  padding: 15px 16px; font-size: 15px; color: var(--text); font-family: 'Pretendard', sans-serif;
+  outline: none; transition: border-color .2s, box-shadow .2s; -webkit-appearance: none;
+}
+input:focus { border-color: #6e6e73; box-shadow: 0 0 0 3px rgba(255,255,255,.05); }
+input::placeholder { color: var(--text4); }
+
+/* BUTTONS */
+.btn { display: block; width: 100%; padding: 15px 20px; border-radius: var(--r-md); font-size: 15px; font-weight: 700; letter-spacing: -.01em; cursor: pointer; border: none; font-family: 'Pretendard', sans-serif; transition: all .15s var(--ease); }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-white { background: var(--white); color: #1d1d1f; }
+.btn-white:hover:not(:disabled) { background: #e5e5ea; }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); width: auto; padding: 10px 20px; font-size: 14px; }
+.btn-ghost:hover { background: var(--bg3); color: var(--text); }
+.btn-text { background: none; border: none; cursor: pointer; font-family: 'Pretendard', sans-serif; font-size: 13px; color: var(--text3); text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+.btn-text:hover { color: var(--text2); }
+
+/* API KEY SCREEN */
+.apikey-wrap { padding-top: 12px; }
+.apikey-wrap h2 { font-size: 30px; font-weight: 700; letter-spacing: -.045em; line-height: 1.2; margin-bottom: 14px; }
+.apikey-wrap .desc { font-size: 15px; color: var(--text2); line-height: 1.7; margin-bottom: 28px; }
+.apikey-wrap a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.field-stack { display: flex; flex-direction: column; gap: 10px; }
+.api-note { display: flex; gap: 8px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-sm); padding: 13px 14px; margin-top: 14px; }
+.api-note-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.api-note-text { font-size: 13px; color: var(--text3); line-height: 1.6; }
+
+/* INTRO */
+.intro { margin-bottom: 32px; }
+.intro h1 { font-size: 36px; font-weight: 700; letter-spacing: -.045em; line-height: 1.15; margin-bottom: 12px; }
+.intro p { font-size: 15px; color: var(--text2); line-height: 1.7; }
+.main-input { width: 100%; background: var(--bg2); border: 1.5px solid var(--border2); border-radius: var(--r-lg); padding: 18px 20px; font-size: 20px; font-weight: 500; letter-spacing: -.025em; color: var(--text); font-family: 'Pretendard', sans-serif; outline: none; display: block; transition: all .2s var(--ease); -webkit-appearance: none; margin-bottom: 10px; }
+.main-input:focus { border-color: #6e6e73; box-shadow: 0 0 0 3px rgba(255,255,255,.05); }
+.main-input::placeholder { color: var(--text4); font-weight: 400; }
+.input-hint { font-size: 12px; color: var(--text3); margin-bottom: 20px; padding-left: 2px; }
+
+/* PATH */
+.path-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 11px 14px; margin-bottom: 24px; background: var(--bg2); border-radius: var(--r-sm); border: 1px solid var(--border); }
+.path-item { font-size: 13px; color: var(--text3); }
+.path-item.cur { font-weight: 700; color: var(--text); }
+.path-sep { font-size: 11px; color: var(--text4); margin: 0 2px; }
+
+/* DEPTH */
+.depth-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+.ddot { width: 5px; height: 5px; border-radius: 50%; background: var(--bg4); transition: background .25s, transform .25s var(--spring); }
+.ddot.on { background: var(--white); transform: scale(1.4); }
+.dlabel { font-size: 11px; font-weight: 600; color: var(--text3); margin-left: 4px; }
+
+/* SECTION LABEL */
+.slabel { font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--text3); text-transform: uppercase; margin-bottom: 14px; }
+
+/* CHIPS */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 36px; }
+.chip { padding: 10px 18px; border-radius: 100px; font-size: 15px; font-weight: 500; letter-spacing: -.01em; cursor: pointer; background: var(--bg2); border: 1.5px solid var(--border2); color: var(--text2); font-family: 'Pretendard', sans-serif; transition: all .15s var(--ease); -webkit-tap-highlight-color: transparent; }
+.chip:hover { background: var(--white); color: #1d1d1f; border-color: var(--white); transform: translateY(-1px); }
+.chip:active { transform: scale(.95); }
+
+/* STOP */
+.stop-section { border-top: 1px solid var(--border); padding-top: 28px; margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.stop-hint { font-size: 13px; color: var(--text3); }
+.btn-stop { padding: 14px 36px; border-radius: 100px; font-size: 15px; font-weight: 700; letter-spacing: -.01em; cursor: pointer; border: none; background: var(--white); color: #1d1d1f; font-family: 'Pretendard', sans-serif; transition: all .15s var(--ease); }
+.btn-stop:hover { background: #e5e5ea; transform: scale(1.02); }
+.btn-stop:active { transform: scale(.97); }
+
+/* LOADING */
+.loading { display: flex; align-items: center; gap: 10px; padding: 20px 0; font-size: 14px; color: var(--text2); }
+.ldots { display: flex; gap: 4px; }
+.ldots span { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); animation: ldot 1.2s ease-in-out infinite; }
+.ldots span:nth-child(2) { animation-delay: .15s; }
+.ldots span:nth-child(3) { animation-delay: .3s; }
+@keyframes ldot { 0%,80%,100%{transform:scale(.5);opacity:.3} 40%{transform:scale(1);opacity:1} }
+
+/* ERROR */
+.err { padding: 14px 16px; border-radius: var(--r-sm); font-size: 14px; line-height: 1.6; margin-bottom: 14px; background: #2c1616; border: 1px solid #5c2020; color: #ff9090; }
+.err-title { font-weight: 700; margin-bottom: 4px; }
+.err-body { font-size: 13px; color: #cc7070; line-height: 1.55; }
+
+/* RECONSTRUCT */
+.recon { animation: fadeUp .45s var(--ease) forwards; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.recon-head { margin-bottom: 28px; }
+.recon-title { font-size: 28px; font-weight: 700; letter-spacing: -.04em; line-height: 1.2; margin-bottom: 8px; }
+.recon-path { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.recon-path b { color: var(--text); font-weight: 600; }
+
+/* IDEA CARD */
+.icard { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-lg); padding: 22px 20px; margin-bottom: 10px; transition: all .2s var(--ease); animation: fadeUp .4s var(--ease) both; }
+.icard:nth-child(2){animation-delay:.04s} .icard:nth-child(3){animation-delay:.08s} .icard:nth-child(4){animation-delay:.12s}
+.icard:hover { background: var(--bg3); transform: translateY(-2px); }
+.icard-idx { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+.icard-title { font-size: 20px; font-weight: 700; letter-spacing: -.03em; color: var(--text); margin-bottom: 10px; line-height: 1.3; }
+.icard-desc { font-size: 14px; color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
+.icard-conn { font-size: 13px; color: var(--text3); line-height: 1.55; font-style: italic; padding-top: 12px; border-top: 1px solid var(--border); }
+.icard-tag { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; background: var(--bg3); color: var(--text3); }
+
+/* DIVIDER */
+.sdivider { display: flex; align-items: center; gap: 12px; margin: 36px 0 24px; }
+.sdivider-line { flex: 1; height: 1px; background: var(--border); }
+.sdivider-txt { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
+
+/* TOOL CARD */
+.tcard { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-lg); padding: 22px 20px; margin-bottom: 10px; animation: fadeUp .4s var(--ease) both; }
+.tcard:nth-child(2){animation-delay:.04s} .tcard:nth-child(3){animation-delay:.08s} .tcard:nth-child(4){animation-delay:.12s}
+.tcard-idx { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+.tcard-name { font-size: 17px; font-weight: 700; letter-spacing: -.025em; color: var(--text); margin-bottom: 3px; }
+.tcard-sub { font-size: 12px; font-weight: 500; color: var(--text3); margin-bottom: 12px; }
+.tcard-body { font-size: 14px; color: var(--text2); line-height: 1.7; }
+
+/* RESTART */
+.restart-row { display: flex; justify-content: center; margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="flip-overlay" id="flipOverlay">
+  <div class="flip-text">재조립을 시작합니다</div>
+  <div class="flip-sub">해체 경로를 역방향으로 재구성해요</div>
+</div>
+
+<div class="panel-bg" id="panelBg" onclick="closePanel()"></div>
+<div class="panel" id="particlePanel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div class="panel-head">
+    <div class="panel-title">Particle</div>
+    <div class="panel-count" id="panelCount"></div>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <button class="panel-clear" id="panelClearBtn" onclick="clearAllHistory()" style="display:none;">기록 전체 삭제</button>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <img src="logo.png" alt="Deconstruct" class="logo-img"
+           onerror="this.style.display='none'; document.getElementById('logoText').style.display='block';">
+      <span class="logo-text" id="logoText" style="display:none;">Deconstruct</span>
+    </div>
+    <div class="header-right">
+      <button class="hbtn" onclick="openPanel()">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="3.5" cy="7" r="1.3"/><circle cx="7" cy="3.5" r="1.3"/>
+          <circle cx="10.5" cy="7" r="1.3"/><circle cx="7" cy="10.5" r="1.3"/>
+        </svg>
+        Particle
+      </button>
+      <button class="hbtn" onclick="goHome()" title="API 키 설정">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M1.5 5.5L7 1.5l5.5 4V13H9V9H5v4H1.5z" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="phase-pill d" id="phasePill">해체</span>
+    </div>
+  </div>
+
+  <!-- API KEY -->
+  <div id="apikeyScreen">
+    <div class="apikey-wrap">
+      <h2>API 키를<br>입력해주세요</h2>
+      <p class="desc">
+        <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>에서
+        "Create API key"를 클릭해 발급받을 수 있어요.<br>
+        키는 이 기기에만 저장되며 외부로 전송되지 않아요.
+      </p>
+      <div class="field-stack">
+        <input type="password" id="apiKeyInput" placeholder="API 키를 붙여넣으세요" autocomplete="off" />
+        <button class="btn btn-white" id="startBtn" onclick="validateAndStart()">시작하기</button>
+      </div>
+      <div id="apikeyError" style="margin-top: 12px;"></div>
+      <div class="api-note">
+        <span class="api-note-icon">ⓘ</span>
+        <p class="api-note-text">키가 맞지 않거나 사용 제한이 걸린 경우, 이 단계에서 바로 안내해드려요.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="mainApp" style="display:none;">
+    <div id="introSection">
+      <div class="intro">
+        <h1>무엇을<br>해체할까요?</h1>
+        <p>키워드 하나를 입력하면<br>가장 저차원적인 속성까지 분해해드려요.</p>
+      </div>
+      <input type="text" class="main-input" id="topicInput" placeholder="축구공, 커피, 지하철…" />
+      <div class="input-hint">Enter 또는 아래 버튼으로 시작</div>
+      <button class="btn btn-white" onclick="startDeconstruct()">시작하기</button>
+    </div>
+
+    <div id="deconSection" style="display:none;">
+      <div class="path-trail" id="pathTrail"></div>
+      <div class="depth-row" id="depthRow"></div>
+      <div class="slabel">저차원 특성 선택</div>
+      <div class="chips" id="chipsWrap"></div>
+      <div id="loadingEl" class="loading" style="display:none;">
+        <div class="ldots"><span></span><span></span><span></span></div>
+        <span>분해하는 중</span>
+      </div>
+      <div id="errorEl"></div>
+      <div class="stop-section">
+        <span class="stop-hint">원하는 깊이까지 내려왔다면</span>
+        <button class="btn-stop" onclick="stopDeconstruct()">해체 멈추기</button>
+        <button class="btn-text" onclick="resetToIntro()">처음부터</button>
+      </div>
+    </div>
+
+    <div id="reconSection" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+const MODEL = 'gemini-2.0-flash';
+let apiKey = '', path = [], currentIdeas = [];
+
+/* ── GEMINI FETCH (URL param, no CORS issue) ── */
+async function geminiCall(key, prompt, maxTokens) {
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+    + MODEL + ':generateContent?key=' + encodeURIComponent(key);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.9, maxOutputTokens: maxTokens || 1024 }
+    })
+  });
+  const data = await res.json();
+  return { status: res.status, data };
+}
+
+/* ── API KEY VALIDATION ── */
+async function validateAndStart() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) { showKeyErr('API 키를 입력해주세요.'); return; }
+
+  const btn = document.getElementById('startBtn');
+  const input = document.getElementById('apiKeyInput');
+  btn.textContent = '확인 중…'; btn.disabled = true; input.disabled = true;
+  document.getElementById('apikeyError').innerHTML = '';
+
+  let status, data;
+  try {
+    const r = await geminiCall(val, '안녕', 5);
+    status = r.status; data = r.data;
+  } catch(e) {
+    showKeyErr('네트워크 연결을 확인해주세요.', e.message);
+    btn.textContent = '시작하기'; btn.disabled = false; input.disabled = false;
+    return;
+  }
+
+  if (status === 200) {
+    apiKey = val;
+    localStorage.setItem('gk', apiKey);
+    show('apikeyScreen', false);
+    show('mainApp', true);
+    document.getElementById('topicInput').focus();
+  } else {
+    const msg = data?.error?.message || 'HTTP ' + status;
+    showKeyErr('작동할 수 없는 API예요. 키를 다시 확인해주세요.', msg);
+  }
+
+  btn.textContent = '시작하기'; btn.disabled = false; input.disabled = false;
+}
+
+function showKeyErr(title, detail) {
+  let h = '<div class="err"><div class="err-title">' + title + '</div>';
+  if (detail) h += '<div class="err-body">' + detail + '</div>';
+  h += '</div>';
+  document.getElementById('apikeyError').innerHTML = h;
+}
+
+function goHome() {
+  path = []; currentIdeas = [];
+  setPill('d', '해체');
+  show('mainApp', false); show('deconSection', false); show('reconSection', false);
+  document.getElementById('reconSection').innerHTML = '';
+  document.getElementById('apikeyError').innerHTML = '';
+  document.getElementById('apiKeyInput').value = apiKey;
+  show('apikeyScreen', true);
+}
+
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('gk');
+  if (saved) { apiKey = saved; show('apikeyScreen', false); show('mainApp', true); }
+  document.getElementById('topicInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') startDeconstruct(); });
+  document.getElementById('apiKeyInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') validateAndStart(); });
+  renderPanel();
+});
+
+/* ── MAIN GEMINI CALL ── */
+async function callGemini(prompt) {
+  const { status, data } = await geminiCall(apiKey, prompt, 1024);
+  if (status !== 200) throw new Error(data?.error?.message || 'HTTP ' + status);
+  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) throw new Error('응답 오류');
+  return data.candidates[0].content.parts[0].text;
+}
+
+/* ── DECONSTRUCT ── */
+async function startDeconstruct() {
+  const t = document.getElementById('topicInput').value.trim();
+  if (!t) return;
+  path = [t]; currentIdeas = [];
+  show('introSection', false); show('deconSection', true);
+  await fetchChips(t);
+}
+
+async function fetchChips(word) {
+  setLoading(true); clearError(); clearChips(); updatePath(); updateDepth();
+  const prompt = '당신은 크리에이티브 디렉터입니다.\n\n해체 경로: ' + path.join(' → ') + '\n현재 해체 대상: "' + word + '"\n\n"' + word + '"를 가장 저차원적이고 원초적인 특성/속성으로 분해해주세요.\n' + (path.length >= 3 ? '꽤 깊이 내려왔습니다. 매우 원초적이고 물리적/감각적인 속성을 제시해주세요.\n' : '') + '\n규칙:\n- 5~6개의 핵심 속성\n- 각 2~6글자 짧은 단어/구\n- 물리적·기능적·정서적 속성 골고루\n- 설명 없이 단어만\n\nJSON 형식으로만 응답: {"items":["단어1","단어2","단어3","단어4","단어5"]}';
+  try {
+    const raw = await callGemini(prompt);
+    const j = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    renderChips(j.items);
+  } catch(e) { showError(e.message); }
+  finally { setLoading(false); }
+}
+
+function renderChips(items) {
+  const w = document.getElementById('chipsWrap'); w.innerHTML = '';
+  items.forEach(item => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = item;
+    b.onclick = () => { path.push(item); fetchChips(item); };
+    w.appendChild(b);
+  });
+}
+
+function updatePath() {
+  document.getElementById('pathTrail').innerHTML = path.map((p, i) =>
+    '<span class="path-item ' + (i === path.length - 1 ? 'cur' : '') + '">' + p + '</span>' + (i < path.length - 1 ? '<span class="path-sep">→</span>' : '')
+  ).join('');
+}
+
+function updateDepth() {
+  const max = 7; let h = '';
+  for (let i = 0; i < max; i++) h += '<div class="ddot ' + (i < path.length - 1 ? 'on' : '') + '"></div>';
+  h += '<span class="dlabel">depth ' + (path.length - 1) + '</span>';
+  document.getElementById('depthRow').innerHTML = h;
+}
+
+/* ── STOP ── */
+async function stopDeconstruct() {
+  document.getElementById('flipOverlay').classList.add('active');
+  setPill('r', '재조립');
+  setTimeout(() => document.getElementById('flipOverlay').classList.remove('active'), 1600);
+  show('deconSection', false);
+  const sec = document.getElementById('reconSection');
+  show('reconSection', true);
+  sec.innerHTML = '<div class="recon"><div class="recon-head"><div class="recon-title">재조립합니다</div><div class="recon-path">해체 경로 <b>' + path.join(' → ') + '</b></div></div><div class="loading" id="reconLoading"><div class="ldots"><span></span><span></span><span></span></div><span>사회적 의미로 재조립하는 중</span></div></div>';
+  await fetchReconstruct();
+}
+
+/* ── RECONSTRUCT ── */
+async function fetchReconstruct() {
+  const prompt = '당신은 창의적 캠페인 기획자이자 크리에이티브 디렉터입니다.\n\n해체 경로: ' + path.join(' → ') + '\n"' + path[0] + '"을 해체해서 "' + path[path.length-1] + '"에 도달했습니다.\n\n이 경로를 역방향으로 재조립하여 사회적 의미의 캠페인/아이디어 3개를 제안해주세요.\n- title: 캠페인 이름 (10자 이내)\n- description: 2-3문장, 캠페인 핵심과 사회적 연결\n- tag: CSR·사회운동·브랜드캠페인·공공캠페인 등\n- connection: 저차원 속성과 사회적 이슈 연결 이유 한 문장\n\nJSON으로만: {"ideas":[{"title":"","description":"","tag":"","connection":""}]}';
+  try {
+    const raw = await callGemini(prompt);
+    const j = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    currentIdeas = j.ideas; renderIdeas(j.ideas);
+  } catch(e) {
+    document.getElementById('reconLoading').outerHTML = '<div class="err"><div class="err-title">재조립 오류</div><div class="err-body">' + e.message + '</div></div>';
+  }
+}
+
+function renderIdeas(ideas) {
+  const sec = document.getElementById('reconSection');
+  let h = '<div class="recon"><div class="recon-head"><div class="recon-title">재조립 완료</div><div class="recon-path">해체 경로 <b>' + path.join(' → ') + '</b></div></div>';
+  ideas.forEach((idea, i) => {
+    h += '<div class="icard"><div class="icard-idx">Idea ' + String(i+1).padStart(2,'0') + '</div><div class="icard-title">' + idea.title + '</div><div class="icard-desc">' + idea.description + '</div><div class="icard-conn">' + idea.connection + '</div><span class="icard-tag">' + idea.tag + '</span></div>';
+  });
+  h += '</div>';
+  sec.innerHTML = h;
+  saveToHistory();
+  setTimeout(() => fetchAmplify(ideas), 300);
+}
+
+/* ── AMPLIFY ── */
+async function fetchAmplify(ideas) {
+  setPill('a', '증폭');
+  const prompt = '당신은 크리에이티브 전략가입니다.\n\n해체 경로: ' + path.join(' → ') + '\n주요 아이디어: ' + ideas[0].title + ' — ' + ideas[0].description + '\n\n3가지 도구로 증폭:\n1. 해체의 깊이 (기능→속성→정서): 아직 미발견 정서적 레이어와 새로운 아이디어\n2. 메타포 전이 (형태적→구조적): 구조적 유사성으로 비틀면 나오는 날카로운 메시지\n3. 시각적 낯설게 하기: 한 장 이미지의 시각적 충돌/대비, 비주얼 시초점과 카피라인\n\nJSON으로만:\n{"tools":[{"name":"해체의 깊이","subtitle":"기능 → 속성 → 정서","content":""},{"name":"메타포 전이","subtitle":"형태적 → 구조적 유사성","content":""},{"name":"시각적 낯설게 하기","subtitle":"Visual Defamiliarization","content":""}]}';
+  const sec = document.getElementById('reconSection');
+  const ld = document.createElement('div');
+  ld.id = 'ampLoad'; ld.className = 'loading'; ld.style.marginTop = '12px';
+  ld.innerHTML = '<div class="ldots"><span></span><span></span><span></span></div><span>3가지 도구 적용 중</span>';
+  sec.appendChild(ld);
+  try {
+    const raw = await callGemini(prompt);
+    const j = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    renderTools(j.tools);
+  } catch(e) {
+    ld.outerHTML = '<div class="err"><div class="err-title">증폭 오류</div><div class="err-body">' + e.message + '</div></div>';
+  }
+  setPill('a', '완성');
+}
+
+function renderTools(tools) {
+  const ld = document.getElementById('ampLoad');
+  let h = '<div class="sdivider"><div class="sdivider-line"></div><div class="sdivider-txt">3가지 증폭 도구</div><div class="sdivider-line"></div></div>';
+  tools.forEach((t, i) => {
+    h += '<div class="tcard"><div class="tcard-idx">Tool ' + String(i+1).padStart(2,'0') + '</div><div class="tcard-name">' + t.name + '</div><div class="tcard-sub">' + t.subtitle + '</div><div class="tcard-body">' + t.content + '</div></div>';
+  });
+  h += '<div class="restart-row"><button class="btn-ghost" onclick="resetToIntro()">새로운 해체 시작</button></div>';
+  ld.outerHTML = h;
+}
+
+/* ── PARTICLE ── */
+function getHistory() { try { return JSON.parse(localStorage.getItem('ph') || '[]'); } catch { return []; } }
+function saveToHistory() {
+  const h = getHistory();
+  h.unshift({ id: Date.now(), date: new Date().toLocaleString('ko-KR', {month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}), path: path.join(' → '), ideas: currentIdeas });
+  if (h.length > 50) h.pop();
+  localStorage.setItem('ph', JSON.stringify(h));
+}
+function renderPanel() {
+  const h = getHistory();
+  document.getElementById('panelCount').textContent = h.length ? h.length + '개의 기록' : '기록 없음';
+  document.getElementById('panelClearBtn').style.display = h.length ? 'block' : 'none';
+  const body = document.getElementById('panelBody');
+  if (!h.length) { body.innerHTML = '<div class="panel-empty">아직 해체 기록이 없어요.<br>첫 번째 해체를 시작해보세요.</div>'; return; }
+  body.innerHTML = h.map(item => '<div class="history-item"><div class="history-date">' + item.date + '</div><div class="history-path">' + item.path + '</div><div class="history-ideas">' + (item.ideas||[]).map(x=>x.title).join(' · ') + '</div></div>').join('');
+}
+function openPanel()  { renderPanel(); document.getElementById('particlePanel').classList.add('open'); document.getElementById('panelBg').classList.add('open'); }
+function closePanel() { document.getElementById('particlePanel').classList.remove('open'); document.getElementById('panelBg').classList.remove('open'); }
+function clearAllHistory() { if (!confirm('기록을 모두 삭제할까요?')) return; localStorage.removeItem('ph'); renderPanel(); }
+
+/* ── RESET ── */
+function resetToIntro() {
+  path = []; currentIdeas = [];
+  setPill('d', '해체');
+  show('deconSection', false); show('reconSection', false);
+  document.getElementById('reconSection').innerHTML = '';
+  show('introSection', true);
+  document.getElementById('topicInput').value = '';
+  document.getElementById('topicInput').focus();
+}
+
+/* ── UTILS ── */
+function show(id, v)   { document.getElementById(id).style.display = v ? 'block' : 'none'; }
+function setPill(cls, txt) { const p = document.getElementById('phasePill'); p.className = 'phase-pill ' + cls; p.textContent = txt; }
+function setLoading(v) { document.getElementById('loadingEl').style.display = v ? 'flex' : 'none'; }
+function clearChips()  { document.getElementById('chipsWrap').innerHTML = ''; }
+function clearError()  { document.getElementById('errorEl').innerHTML = ''; }
+function showError(m)  { document.getElementById('errorEl').innerHTML = '<div class="err"><div class="err-title">오류가 발생했어요</div><div class="err-body">' + m + '</div></div>'; }
+</script>
+</body>
